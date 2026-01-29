@@ -1,8 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { audioPlayer } from '../audio/audioPlayer';
-import { X, Play, Pause, SkipBack, SkipForward, Volume2 } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
+import { Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface FullPlayerProps {
     isOpen: boolean;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { db, Track } from './db';
+import { db, type Track } from './db';
 import 'fake-indexeddb/auto';
 
 describe('MusicDatabase', () => {
