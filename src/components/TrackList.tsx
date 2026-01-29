@@ -4,15 +4,16 @@ interface TrackListProps {
     tracks: Track[];
     onPlay: (track: Track) => void;
     currentTrackId?: number;
+    onAddToPlaylist?: (track: Track) => void;
 }
 
-export const TrackList = ({ tracks, onPlay, currentTrackId }: TrackListProps) => {
+export const TrackList = ({ tracks, onPlay, currentTrackId, onAddToPlaylist }: TrackListProps) => {
     if (tracks.length === 0) {
         return <div className="p-10 text-center text-slate-500">No tracks found. Import some music to get started!</div>
     }
 
     return (
-        <div className="w-full pb-32">
+        <div className="w-full">
             <table className="w-full text-left border-collapse">
                 <thead>
                     <tr className="text-slate-500 border-b border-white/5 text-xs uppercase tracking-wider font-semibold">
@@ -21,6 +22,7 @@ export const TrackList = ({ tracks, onPlay, currentTrackId }: TrackListProps) =>
                         <th className="p-4">Artist</th>
                         <th className="p-4 hidden md:table-cell">Album</th>
                         <th className="p-4 text-right">Duration</th>
+                        <th className="p-4 w-12"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -44,8 +46,19 @@ export const TrackList = ({ tracks, onPlay, currentTrackId }: TrackListProps) =>
                                 </td>
                                 <td className="p-4 opacity-75">{track.artist}</td>
                                 <td className="p-4 opacity-75 hidden md:table-cell">{track.album}</td>
-                                <td className="p-4 opacity-75 text-right rounded-r-lg tabular-nums text-sm">
+                                <td className="p-4 opacity-75 text-right tabular-nums text-sm">
                                     {formatDuration(track.duration)}
+                                </td>
+                                <td className="p-4 text-right rounded-r-lg">
+                                    {onAddToPlaylist && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onAddToPlaylist(track); }}
+                                            className="text-slate-600 hover:text-white p-1 rounded-full hover:bg-slate-700 transition opacity-0 group-hover:opacity-100"
+                                            title="Add to Playlist"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         )
