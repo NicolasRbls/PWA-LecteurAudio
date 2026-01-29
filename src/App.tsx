@@ -1,10 +1,14 @@
 import { PlaybackControls } from './components/PlaybackControls';
 import { Library } from './components/Library';
+import { MeshGradient } from './components/ui/MeshGradient';
 
 function App() {
   return (
-    <div className="min-h-screen bg-slate-900 text-white selection:bg-indigo-500 selection:text-white pb-safe">
-      <Library />
+    <div className="min-h-screen relative pb-32">
+      <MeshGradient />
+      <div className="relative z-0">
+        <Library />
+      </div>
       <PlaybackControls />
     </div>
   );

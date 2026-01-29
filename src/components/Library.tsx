@@ -4,6 +4,8 @@ import { db, type Track, type Playlist } from '../db/db';
 import { TrackList } from './TrackList';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { ImportButton } from './ImportButton';
+import { motion } from 'framer-motion';
+import { cn } from '../utils/cn';
 
 export const Library = () => {
     const [tab, setTab] = useState<'tracks' | 'playlists'>('tracks');
@@ -11,6 +13,12 @@ export const Library = () => {
     const playlists = useLiveQuery(() => db.playlists.toArray());
 
     const { playTrack, currentTrack, setQueue } = usePlayerStore();
+
+    // ... (Handlers same as before, simplified for this snippet but crucial to keep)
+    // We will just copy the handlers from previous version or re-implement if replacing whole file.
+    // Wait, replacing line 1-99 replaces the whole file top. I need to keep handlers.
+    // I should use a strategy to keep handlers or rewrite them.
+    // I will rewrite them to be safe.
 
     const handlePlayTrack = (track: Track) => {
         if (tracks && tab === 'tracks') setQueue(tracks);
@@ -22,11 +30,8 @@ export const Library = () => {
             alert("Playlist is empty!");
             return;
         }
-
         try {
             const playlistTracks = await db.tracks.where('id').anyOf(playlist.trackIds).toArray();
-            // Preserve order roughly (Dexie returns sorted by index usually, we might want to respect trackIds order)
-            // Sorting based on playlist.trackIds order:
             const sorted = playlist.trackIds
                 .map(id => playlistTracks.find(t => t.id === id))
                 .filter((t): t is Track => !!t);
@@ -35,82 +40,76 @@ export const Library = () => {
                 setQueue(sorted);
                 playTrack(sorted[0]);
             }
-        } catch (e) {
-            console.error(e);
-        }
+        } catch (e) { console.error(e); }
     }
 
     const createPlaylist = async () => {
         const name = prompt("Playlist Name:");
         if (name) {
-            await db.playlists.add({
-                name,
-                trackIds: [],
-                createdAt: Date.now()
-            });
+            await db.playlists.add({ name, trackIds: [], createdAt: Date.now() });
         }
     }
 
     const addToPlaylist = async (track: Track) => {
-        if (!playlists || playlists.length === 0) {
-            alert("Create a playlist first!");
-            return;
-        }
+        if (!playlists?.length) { alert("Create a playlist first!"); return; }
 
-        // Simple logic: If 1 playlist, add to it. If more, prompt.
         let targetPl = playlists[0];
         if (playlists.length > 1) {
             const names = playlists.map((p, i) => `${i + 1}. ${p.name}`).join('\n');
             const choice = prompt(`Select Playlist:\n${names}`);
             const idx = parseInt(choice || '0') - 1;
-            if (idx >= 0 && idx < playlists.length) {
-                targetPl = playlists[idx];
-            } else {
-                return;
-            }
+            if (idx >= 0 && idx < playlists.length) targetPl = playlists[idx];
+            else return;
         }
 
-        if (targetPl && targetPl.id) {
-            // Check duplicates?
-            if (!targetPl.trackIds.includes(track.id!)) {
-                await db.playlists.update(targetPl.id, {
-                    trackIds: [...targetPl.trackIds, track.id!]
-                });
-                alert(`Added to ${targetPl.name}`);
-            } else {
-                alert("Already in playlist");
-            }
+        if (targetPl?.id && !targetPl.trackIds.includes(track.id!)) {
+            await db.playlists.update(targetPl.id, { trackIds: [...targetPl.trackIds, track.id!] });
+            alert(`Added to ${targetPl.name}`);
         }
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto pb-32">
-            <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-                <div className="flex items-center space-x-6">
-                    <button
-                        onClick={() => setTab('tracks')}
-                        className={`text-3xl font-bold cursor-pointer transition bg-transparent border-none ${tab === 'tracks' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                        Tracks
-                    </button>
-                    <button
-                        onClick={() => setTab('playlists')}
-                        className={`text-3xl font-bold cursor-pointer transition bg-transparent border-none ${tab === 'playlists' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                        Playlists
-                    </button>
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+            <header className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6">
+                <div className="bg-white/5 backdrop-blur-md p-1.5 rounded-full flex relative">
+                    {['tracks', 'playlists'].map((t) => (
+                        <button
+                            key={t}
+                            onClick={() => setTab(t as any)}
+                            className={cn(
+                                "relative px-6 py-2 rounded-full text-sm font-medium transition-colors z-10 capitalize",
+                                tab === t ? "text-white" : "text-slate-400 hover:text-slate-200"
+                            )}
+                        >
+                            {tab === t && (
+                                <motion.div
+                                    layoutId="activeTab"
+                                    className="absolute inset-0 bg-white/10 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.1)] backdrop-blur-sm border border-white/10"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            {t}
+                        </button>
+                    ))}
                 </div>
-                <div className="flex space-x-2">
+
+                <div className="flex items-center gap-4">
                     {tab === 'tracks' && <ImportButton />}
                     {tab === 'playlists' && (
-                        <button onClick={createPlaylist} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-full font-medium transition shadow-lg">
-                            New Playlist
+                        <button
+                            onClick={createPlaylist}
+                            className="bg-indigo-500/80 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-full font-medium transition shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] backdrop-blur-md border border-white/10 flex items-center"
+                        >
+                            <span className="mr-2 text-lg">+</span> New Playlist
                         </button>
                     )}
                 </div>
-            </div>
+            </header>
 
-            <div className="bg-slate-800/40 rounded-2xl border border-white/5 overflow-hidden backdrop-blur-sm shadow-xl min-h-[50vh]">
+            <motion.div
+                layout
+                className="bg-black/20 rounded-3xl border border-white/5 overflow-hidden backdrop-blur-xl shadow-2xl min-h-[60vh]"
+            >
                 {tab === 'tracks' ? (
                     tracks ? (
                         <TrackList
@@ -120,25 +119,35 @@ export const Library = () => {
                             onAddToPlaylist={addToPlaylist}
                         />
                     ) : (
-                        <div className="p-8 text-center text-slate-500">Loading tracks...</div>
+                        <div className="flex items-center justify-center h-96">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                        </div>
                     )
                 ) : (
-                    <div className="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {playlists?.map(pl => (
-                            <div key={pl.id} onClick={() => handlePlayPlaylist(pl)} className="bg-slate-700/30 p-6 rounded-xl hover:bg-slate-700/60 cursor-pointer transition group border border-white/5 hover:border-indigo-500/50">
-                                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">💿</div>
-                                <div className="font-bold text-lg text-white group-hover:text-indigo-300 transition-colors">{pl.name}</div>
-                                <div className="text-sm text-slate-400">{pl.trackIds.length} tracks</div>
-                            </div>
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                key={pl.id}
+                                onClick={() => handlePlayPlaylist(pl)}
+                                className="bg-white/5 hover:bg-white/10 p-6 rounded-2xl cursor-pointer transition-all group border border-white/5 hover:border-white/10 hover:shadow-xl aspect-square flex flex-col justify-between relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg">▶</div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="text-5xl group-hover:scale-110 transition-transform duration-500 origin-bottom-left">💿</div>
+                                </div>
+                                <div>
+                                    <div className="font-bold text-lg text-white group-hover:text-indigo-200 transition-colors truncate">{pl.name}</div>
+                                    <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">{pl.trackIds.length} tracks</div>
+                                </div>
+                            </motion.div>
                         ))}
-                        {playlists?.length === 0 && (
-                            <div className="col-span-full p-10 text-center text-slate-500">
-                                No playlists yet. Create one!
-                            </div>
-                        )}
                     </div>
                 )}
-            </div>
+            </motion.div>
         </div>
     );
 };
